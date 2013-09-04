@@ -1,0 +1,190 @@
+<?php
+//el titulo y la descripcion ya lo pasa por t
+//page callback = la pagina que va a crear, cada que el usuario entre, se ejecutara el proceso directorio_page
+//access callback = checa los permisos del usuario que entro para saber si puede acer o no algo, drupal siempre hace el access callback
+//hook_menu = definir links de menu
+
+
+//SUBIR UN COMMIT DE ESTO A GIT
+
+function directorio_menu(){
+	$items = array();
+	
+  $items["directorio"] = array(
+	'title' => 'Directorio',
+	'description' => 'Listado de contactos en el sitio',
+	'page callback' => 'directorio_page',
+	'access callback' => 'user_access',
+	'access arguments' => array("ver directorio"),
+	'type' => MENU_NORMAL_ITEM
+		);
+
+//$items = ["directorio/buscar"] = array(
+	//	);
+
+//$items = ["directorio/buscar/nombre/%"] = array(
+	//	);
+
+
+//$items = ["directorio/buscar/extension/%"] = array(
+	//	);
+
+$items["contactos/agregar"] = array(
+	'title' => 'Agregar contactos',
+	'description' => 'agregar algun contacto',
+	'page callback' => 'directorio_agregarContactoForm',
+	'access callback' => 'user_access',
+	'access arguments' => array("agregar contacto"),
+	'type' => MENU_NORMAL_ITEM,
+	'page arguments' => array("directorio_agregarContactoForm")
+		);
+
+//$items = ["contactos/ver/%"] = array(
+	//	);
+
+//$items = ["directorio"] = array(
+	//	);
+
+//$items = ["directorio"] = array(
+	//	);
+
+return $items;
+}
+//callback principal de /dirctorio
+//muestra un listado de contactos en el sitio
+
+function directorio_page(){
+return "esto es un directorio";
+}
+
+//implements hook_permision()
+//
+function directorio_permission(){
+return array(
+	'ver directorio' => array(
+			'title' => t("ver el directorio de contactos"),
+			'description' => t("permite mostrar el directorio")
+		),
+	'agregar contacto' => array(
+			'title' => t("agregar contacto"),
+			'description' => t("permite agregar un contacto")
+		)
+	);
+}
+
+function contactos_page(){
+return "esto es un directorio";
+}
+
+//implements hook_permision()
+//
+//agregar contacto
+
+
+function directorio_agregarContactoForm($form){
+	$form =  array();
+
+	$form["nombre"] = array(
+		'#type' => 'textfield',
+		'#title' => t("Nombre"),
+		'#required' => TRUE,
+		'#description' => t("Escriba el nombre o los nombres de contacto")
+	);
+	
+	$form["apellido_paterno"] = array(
+		'#type' => 'textfield',
+		'#title' => t("apellido materno"),
+		'#required' => TRUE,
+		'#description' => t("Escriba el apellido")
+		);
+
+	$form["apellido_materno"] =array(
+		'#type' => 'textfield',
+		'#title' => 'escriba el apellido materno',
+		'#required' => FALSE,
+		'description' => t("escriba el apellido materno")
+		);
+
+	$form["departamento"] = array(
+		'#type' => 'select',
+		'#title' => t("Departamento"),
+		'#required' => TRUE,
+		'#description' => t("seleccione el departamento"),
+		'#options' => getDepartamento()
+		);
+
+	 $form["telefono_oficina"] = array(
+	 	'#type' => 'textfield',
+		'#title' => 'Telefono de la oficina',
+		'#required' => FALSE,
+		'#description' => t("telefono de la oficina"), 	 
+		'#default_value' => _telefonoDeOficinaDefault()
+	 	);
+
+	 $form["Extencion_telefonica"] = array(
+	 	'#type' => 'textfield',
+		'#title' => 'extencion telefonica',
+		'#required' => TRUE,
+		'#description' => t("Extencion telefonica"), 	 
+	 	);
+
+	 $form["email_trabajo"] = array(
+	 	'#type' => 'textfield',
+		'#title' => 'Email del trabajo',
+		'#required' => FALSE,
+		'#description' => t("Email del trabajo"), 	 
+	 	);
+
+	 $form["email_personak"] = array(
+	 	'#type' => 'textfield',
+		'#title' => 'Email personal',
+		'#required' => FALSE,
+		'#description' => t("Email del personal"), 	 
+	 );
+
+	 $form["telefono_casa"] = array(
+	 	'#type' => 'textfield',
+		'#title' => 'Telefono de casa',
+		'#required' => FALSE,
+		'#description' => t("tel de casa"), 	 
+	 );
+
+	  $form["telefono_celular"] = array(
+	 	'#type' => 'textfield',
+		'#title' => 'Celular',
+		'#required' => FALSE,
+		'#description' => t("celular"), 	 
+	  );
+
+
+	  $form["actions"] = array(
+	  	'#prefix' => '<div class="actions well">',
+	  	'#suffix' => '</div>'
+	  );
+
+	  $form["actions"]["submit"] = array(
+	  	'#type' => 'submit',
+	  	'#value' => t("Save")
+	  );
+
+	return $form;
+}
+
+/**
+*listado de departamentos en la compania
+*
+*@return array listado de departamentos
+*/
+
+function getDepartamento(){
+	return array(
+		'administracion' => t("administracion"),
+    'recursos_humanos' => t("recursos humanos"),
+		'sistemas' => t("sistemas"),
+		'ventas' => t("ventas"),
+		);
+}
+
+function _telefonoDeOficinaDefault(){
+	return "2020-7350";
+}
