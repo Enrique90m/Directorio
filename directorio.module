@@ -93,23 +93,23 @@ function directorio_agregarContactoForm($form){
 	
 	$form["apellido_paterno"] = array(
 		'#type' => 'textfield',
-		'#title' => t("apellido materno"),
+		'#title' => t("Apellido materno"),
 		'#required' => TRUE,
 		'#description' => t("Escriba el apellido")
 		);
 
 	$form["apellido_materno"] =array(
 		'#type' => 'textfield',
-		'#title' => 'escriba el apellido materno',
+		'#title' => 'Escriba el apellido materno',
 		'#required' => FALSE,
-		'description' => t("escriba el apellido materno")
+		'description' => t("Escriba el apellido materno")
 		);
 
 	$form["departamento"] = array(
 		'#type' => 'select',
 		'#title' => t("Departamento"),
 		'#required' => TRUE,
-		'#description' => t("seleccione el departamento"),
+		'#description' => t("Seleccione el departamento"),
 		'#options' => getDepartamento()
 		);
 
@@ -117,13 +117,13 @@ function directorio_agregarContactoForm($form){
 	 	'#type' => 'textfield',
 		'#title' => 'Telefono de la oficina',
 		'#required' => FALSE,
-		'#description' => t("telefono de la oficina"), 	 
+		'#description' => t("Telefono de la oficina"), 	 
 		'#default_value' => _telefonoDeOficinaDefault()
 	 	);
 
 	 $form["Extencion_telefonica"] = array(
 	 	'#type' => 'textfield',
-		'#title' => 'extencion telefonica',
+		'#title' => 'Extencion telefonica',
 		'#required' => TRUE,
 		'#description' => t("Extencion telefonica"), 	 
 	 	);
@@ -135,7 +135,7 @@ function directorio_agregarContactoForm($form){
 		'#description' => t("Email del trabajo"), 	 
 	 	);
 
-	 $form["email_personak"] = array(
+	 $form["email_personal"] = array(
 	 	'#type' => 'textfield',
 		'#title' => 'Email personal',
 		'#required' => FALSE,
@@ -146,14 +146,14 @@ function directorio_agregarContactoForm($form){
 	 	'#type' => 'textfield',
 		'#title' => 'Telefono de casa',
 		'#required' => FALSE,
-		'#description' => t("tel de casa"), 	 
+		'#description' => t("Telefono de casa"), 	 
 	 );
 
 	  $form["telefono_celular"] = array(
 	 	'#type' => 'textfield',
 		'#title' => 'Celular',
 		'#required' => FALSE,
-		'#description' => t("celular"), 	 
+		'#description' => t("Telefono de elular"), 	 
 	  );
 
 
