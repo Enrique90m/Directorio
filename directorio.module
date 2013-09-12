@@ -1,190 +1,583 @@
 <?php
 
-function directorio_menu(){
+/**
+ * Implements hook_menu()
+ */
+function directorio_menu() {
 	$items = array();
 
-	$items["directorio"] = array( 
+	$items["directorio"] = array(
 		'title' => 'Directorio',
 		'description' => 'Listado de contactos en el sitio',
 		'page callback' => 'directorio_page',
-		'access callback' => 'user_access',
 		'access arguments' => array("ver directorio"),
 		'type' => MENU_NORMAL_ITEM
 	);
-	//$items["directorio/buscar"] = array( 
 
-	//);
-	//$items["directorio/buscar/nombre/%"] = array( 
+	//_-----------------------------------------------------------------------------------
+	$items["directorio/buscar"] = array(
+		'title' => 'Buscar personas',
+		'description' => 'Buscar personas en el directorio',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array("directorio_buscarForm"),
+		'access arguments' => array("ver directorio"),
+		'type' =>	MENU_NORMAL_ITEM
+	);
 
-	//);
-	//$items["directorio/buscar/extencion/%"] = array( 
+	$items["directorio/buscar/resultados/%/%"] = array(
+		'title' => 'Resultados de la búsqueda',
+		'description' => 'Resultados de la búsqueda',
+		'page callback' => 'directorio_buscarResultados',
+		'page arguments' => array(3,4),
+		'access callback' => '_buscar_access',
+		'access arguments' => array(3),
+		'type' =>	MENU_CALLBACK
+	);
 
-	//);
-	$items["contactos/agregar"] = array( 
-		'title' => 'Agregar Contactos',
-		'description' => 'Formulario Para agregar un nuevo contacto',
-		'page callback' => 'directorio_agregarContactoForm',
-		'access callback' => 'user_access',
-		'access arguments' => array("agregar contactos"),
+	$items["directorio/buscar/nombre/%"] = array(
+
+	);
+
+
+	//_-----------------------------------------------------------------------------------
+
+
+	// $items["directorio/buscar/extension/%"] = array(
+
+	// );
+
+	$items["contactos/agregar"] = array(
+		'title' => 'Agregar contacto',
+		'description' => 'Agregar un nuevo contacto',
 		'type' => MENU_NORMAL_ITEM,
-		'page arguments' => array('directorio_agregarContactoForm')
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array("directorio_agregarContactoForm"),
+		'access arguments' => array("agregar contacto"),
 	);
-	
 
-	$items["contactos/ver/%"] = array( 
-		'title_callback' => 'contactosTitle',
+	$items["contactos/ver/%"] = array(
+		'title callback' => 'contactosTitle',
+		'title arguments' => array(1, 2),
+		'description' => 'Ver contacto',
+		'page callback' => 'contactosVer',
+		'page arguments' => array(2),
+		'access arguments' => array("ver directorio"),
+		'type' => MENU_CALLBACK
+	);
+
+ $items["contactos/editar/%"] = array( 
+		'title callback' => 'contactosTitle',
 		'title arguments' => array(1,2),
-		'description' => 'ver contacto',
-		'page_callback' => 'contactosVer',
-		'page_arguments' => array(2),
-		'acces_arguments' => array("ver directorio"),
-		'type' => MENU_CALLBACK	
+		'description' => 'editar',
+		'page arguments' => array("directorio_agregarContactoForm",2),
+		'page callback' => 'drupal_get_form',
+		'access arguments' => array("editar contacto"),
+		'type' => MENU_CALLBACK
 	);
-	//$items["contactos/editar/%"] = array( 
 
-	//);
-	//$items["contactos/eliminar/%"] = array( 
+  $items["contactos/eliminar/%"] = array( 
+ 		'title' => 'Eliminar un contacto',
+ 		'description' => 'Elimina un contacto',
+ 		'page callback' => 'drupal_get_form',
+ 		'page arguments' => array("directorio_eliminarContactoForm",2),
+ 		'access arguments' => array("eliminar contacto"),
+ 		'type' => MENU_CALLBACK
+ 	);
 
-	//);
 	return $items;
 }
 
 
-function contactosTitle($op, $cid){
-$contacto = contactosLoad($cid);
+function directorio_eliminarContactoForm($form, &$form_state,$cid){
+	$form = array();
 
-$output ="";
-switch ($op) {
-	case "ver":
-		$output = contactoRealName($contacto);
-		break;
-	
-case "editar":
-	$output = t("Editar contacto: !contacto",array("!contacto"=> 
-		contactoRealName($contacto)));
-	break;
-}
+	$contacto = contactosLoad($cid);
 
-return $output;
-}
+	if($contacto){
+		$form["_cid"]  = array(
+			'#type' => 'hidden',
+			'#value' => $cid
+		);
 
-function contactoRealname($contacto){
-	if(is_array($contacto)){
-		return $contacto["nombre"] . " " . $contacto["apellido_paterno"] . " " . $contacto["apellido_materno"];
-			}
-	else if (is_object($contacto)) {
-		return $contacto->nombre . " " . $contacto->apellido_paterno . " " . $contacto->apellido_materno;
+		$question = t("Esta seguro que desea eliminar al contacto @nombre", array("@nombre" => contactoRealname($contacto)));
+		$path = "contactos/ver/" . $cid;
+		$description = t("Esta accion no se puede deshacer");
+		$yes = t("Si, eliminar contacto");
+		$no = t("Cancel");
+
+		return confirm_form($form, $question, $path, $description, $yes, $no);
 	}
 	else{
+		drupal_set_message(t("El contacto que quiere eliminar no existe"));
+		return $form;
+	}
+}
+
+/***
+callback submit para directorio_eliminarContactoForm()
+*/
+function directorio_eliminarContactoForm_submit($form, &$form_state){
+	$cid = $form_state["values"]["_cid"];
+
+	$contacto = contactosLoad($cid);
+	if($contacto){
+		$remove = db_delete("contactos")
+		->condition("cid", $cid, "=")
+		->execute();
+
+		if($remove){
+			drupal_set_message(t("El contacto fue eliminado con exito"));
+		}
+		else{
+			drupal_set_message(t("El contacto no pudo ser eliminado"), "error");
+		}
+	}
+	else{
+			drupal_set_message(t("El contacto que se intento eliminar no existe"),"error");
+	}
+
+		$form_state["redirect"] = "directorio";
+	
+}
+
+
+
+
+
+
+
+function directorio_buscarForm($form){
+	$form = array();
+
+	$form["nombre"] = array(
+		'#type' => 'textfield',
+		'#title' => t("Buscar por nombre"),
+		'#required' => FALSE
+	);
+
+	if(_esMiembro()){
+		$form["ext"] = array(
+			'#type' => 'textfield',
+			'#title' => t("Buscar por extencion telefonica"),
+			'#required' => FALSE
+		);		
+	}
+
+	$form["departamento"] = array(
+		'#type' => 'textfield',
+		'#title' => t("Departamento"),
+		'#required' => FALSE
+	);
+
+	$form["submit"] = array(
+		'#type' => 'submit',
+		'#value' => t("Buscar")
+	);
+
+
+	return $form;
+}
+function _esMiembro(){
+	$miembro = FALSE;
+	
+	$ip = explode(".", ip_address());
+
+	if (($ip[0] == "139" && $ip[0] == "111") || ($ip[0] == "127" && $ip[1] == "0" && $ip[2] == "0" && $ip[3] == "1")){
+		$miembro = TRUE;
+	}
+	
+	if ( user_is_logged_in() ){
+		$miembro = TRUE;
+	}
+
+	return $miembro;
+}
+
+function _buscar_access($op){
+	$access = FALSE;
+
+	if($op == 'ext' && _esMiembro()){
+		$access = TRUE;
+	}
+	else if (in_array($op, array('nombre','departamento'))){
+		$access = TRUE;
+	}
+
+	return $access;
+}
+
+function directorio_buscarForm_validate($form,&$form_state){
+	
+	if(empty($form_state["values"]["nombre"]) && empty($form_state["values"]["ext"]) && empty($form_state["values"]["departamento"])){
+		form_set_error("nombre",t("Es necesario establecer un criterio de busqueda"));
+		form_set_error("ext",t("Es necesario establecer un criterio de busqueda"));
+		form_set_error("departamento",t("Es necesario establecer un criterio de busqueda"));
+	}
+}
+
+function directorio_buscarForm_submit($form, &$form_state){
+
+	$values = $form_state["values"];
+
+	if(!empty($values["nombre"])){
+		$nombre = check_plain($values["nombre"]);
+		$form_state["redirect"] = "directorio/buscar/resultados/nombre/" . $nombre;
+ 	}
+ 	elseif(empty($values["nombre"]) && !empty($values["ext"])){
+		$extension = check_plain($values["ext"]);
+		$form_state["redirect"] = "directorio/buscar/resultados/extension/" . $extension;
+ 	}
+ 	elseif(empty($values["nombre"]) && empty($values["ext"]) && !empty($values["departamento"])){
+		$departamento = $values["ext"];
+		$form_state["redirect"] = "directorio/buscar/resultados/departamento/" . $departamento;
+ 	}
+}
+/**
+ * Procesa los resutlados y muestra la pagina de directorio_page con los resultados
+ * 
+ * @param $op tipo de búsqueda a realizar, valures validos son nomrbe y extencion
+ */
+
+function directorio_buscarResultados($op ,$search){
+	switch ($op) {
+		case 'nombre':
+			$query = db_query("SELECT * FROM {contactos} c WHERE c.nombre LIKE :nombre OR c.apellido_paterno LIKE :nombre OR c.apellido_materno LIKE :nombre", array(":nombre" => db_like($search,'%')));
+			break;
+		
+		case 'extension':
+			$query = db_query("SELECT * FROM {contactos} c WHERE c.oficina_extension = :ext", array(":ext" => $search));
+			break;
+
+		case 'departamento':
+			$query = db_query("SELECT * FROM {contactos} c WHERE c.departamento = :dep", array(":dep" => db_like($search,'%')));
+			break;
+	}
+
+	$results = array();
+
+	foreach($query as $result){
+		$results[] = $result;
+	}
+
+	return directorio_page($results);
+
+}
+
+
+
+/**
+ * Title callback
+ */
+function contactosTitle($op, $cid) {
+	$contacto = contactosLoad($cid);
+
+	$output = "";
+	switch($op) {
+		case "ver": 
+			$output = contactoRealname($contacto);
+		break;
+
+		case "editar":
+			$output = t("Editar contacto: !contacto", array("!contacto" => contactoRealname($contacto)));
+		break;
+	}
+
+	return $output;
+}
+
+/**
+ * Formatea el nombre de un contacto
+ *
+ * @return string nombre del contacto
+ */
+function contactoRealname($contacto) {
+	if(is_array($contacto)) {
+		return $contacto["nombre"] . " " . $contacto["apellido_paterno"] . " " . $contacto["apellido_materno"];
+	}
+	else if(is_object($contacto)) {
+		return $contacto->nombre . " " . $contacto->apellido_paterno . " " . $contacto->apellido_materno;
+	}
+	else {
 		return NULL;
 	}
 }
 
-function contactosVer($cid){
+/**
+ * Page callback para contactos/ver/%
+ */
+function contactosVer($cid) {
 
+	//cargamos la direccion de nuestro modulo para agregar un .css y se lo pasamos a drupal_add_css
+
+	$path = drupal_get_path("module","directorio") . "/directorio.css";
+
+	drupal_add_css($path);
+
+	global $user;
+	$contacto = contactosLoad($cid);
+
+	$persona = new stdClass();
+
+	//Datos publicos, todo mundo los puede ver
+	$persona->nombre = $contacto->nombre;
+	$persona->apellido_paterno = $contacto->apellido_paterno;
+	$persona->apellido_materno = $contacto->apellido_materno;
+	$persona->nombre_completo = contactoRealname($contacto);
+	$persona->departamento = $contacto->departamento;
+	$persona->telefono_oficina = $contacto->telefono_oficina;
+
+	//139.111.%.%
+	$ip = explode(".", ip_address());
+
+	if (($ip[0] == "139" && $ip[0] == "111") || ($ip[0] == "127" && $ip[1] == "0" && $ip[2] == "0" && $ip[3] == "1")) {
+			
+			$persona->email_trabajo = $contacto->email_trabajo;
+			$persona->oficina_extension = $contacto->oficina_extension;
+
+			if(isset($contacto->telefono_celular)){
+				$persona->telefono_celular = $contacto->telefono_celular;
+			}
+	}
+
+	if(user_is_logged_in()){
+		$persona->email_trabajo = $contacto->email_trabajo;
+		$persona->oficina_extension = $contacto->oficina_extension;
+
+		if(isset($contacto->telefono_celular)){
+			$persona->telefono_celular = $contacto->telefono_celular;
+		}
+	}
+
+
+	if(user_access("ver datos privados") || $user->mail == $contacto->email_trabajo){
+		$persona->email_trabajo = $contacto->email_trabajo;
+		$persona->email_personal = $contacto->email_personal;
+		$persona->telefono_casa = $contacto->telefono_casa;
+		$persona->oficina_extension = $contacto->oficina_extension;
+	}
+	
+	return theme('ver_contacto', array('contacto' => $persona ));
 }
 
-function contactosLoad($cid){
-	return db_select("contactos","c");
-	->fields("c")
-	->condition("c.cid",$cid, "=")
-	->execute()
-	->fetchObject();
+
+function directorio_theme(&$existing, $type, $theme, $path){
+	$items = array();
+
+	$items['ver_contacto'] = array(
+		'variables' => array(
+			'contacto' => NULL
+		),
+		'template' => 'contacto-ver'
+	);
+
+	$items['directorio'] = array(
+			'variables' => array(
+				'contactos' => NULL
+			),
+			'template' => 'directorio'
+		);
+	
+	return $items;
+}
+/**
+ * Funcion preproces en un modulo siempre empieza con template
+ */
+function template_preprocess_ver_contacto(&$variables){
+	$variables["ultima_consulta"] = format_date(time(), 'short');
+}
+
+/**
+ * Load contacto
+ * @return object contacto
+ */
+function contactosLoad($cid) {
+	return db_select("contactos", "c")
+		->fields("c")
+		->condition("c.cid", $cid, "=")
+		->execute()
+		->fetchObject();
+}
+
+/**
+ * funcion para consultar todos los contactos de la tabla
+ *@param string $departamento departamento a consultar, opcional
+ *@return array resultadosde la tabla de contactos,
+ */
+
+function contactosGetAll($departamento = NULL){
+	if(isset($departamento)){
+		$query = db_query("SELECT * FROM {contactos} c WHERE c.departamento = :departamento ORDER BY c.cid ASC", array(":departamento" => $departamento ));
+	}
+	else{
+		$query = db_query("SELECT * FROM {contactos} c ORDER BY c.cid ASC");
+	}
+	$results = array();
+
+	foreach ($query as $result) {
+		$results[$result->cid] = $result;
+	}
+
+	return $results;
 }
 
 /**
  * Callback principal de /directorio
  * Muestra un listado de contactos en el sitio
  */
-function directorio_page( ){
-	return  "Esto es un directorio";
-}
+function directorio_page($contactos = NULL) {
 
+	if(!isset($contactos)){
+		$contactos = contactosGetAll();
+	}
+
+	$header = array(
+			'nombre' => array(
+				'data' => t("Nombre"),
+				'field' => 'nombre'
+			),
+			'apellido_paterno' => array(
+				'data' => t("Apellido Paterno"),
+				'field' => 'apellido_paterno'
+			),
+			'apellido_materno' => array(
+				'data' => t("Apellido Materno"),
+				'field' => 'apellido_materno'
+			),
+			'departamento' => array(
+				'data' => t("Departamento"),
+				'field' => 'departamento'
+			),
+			'ver' => array()
+		);
+
+		$rows = array();
+
+		foreach ($contactos as $contacto) {
+			$row["nombre"] = $contacto->nombre;
+			$row["apellido_paterno"] = $contacto->apellido_paterno;
+			$row["apellido_materno"] = $contacto->apellido_materno;
+			$row["departamento"] = $contacto->departamento;
+			$row["ver"] = l(t("Ver"), "contactos/ver/" . $contacto->cid);
+
+			$rows[] = $row;
+		}
+
+		return theme("table", array("header" => $header, "rows" => $rows));
+	}
 
 /**
- * Implements hook_permission
+ * Implements hook_permission()
  */
-function directorio_permission( ){
+function directorio_permission() {
 	return array(
 		'ver directorio' => array(
-			'title' => t("ver el directorio de contactos"),
-			'descripcion' => t("Permite mostrar el directorio de contactos")
+			'title' => t("Ver el directorio de contactos"),
+			'description' => t("Permite mostrar el directorio de contactos")
 		),
-		'agregar contactos' => array(
-			'title' => t("Agregar un nuevo contacto"),
-			'descripcion' => t("Permite agregar nuevos contactos")
+		'agregar contacto' => array(
+			'title' => t("Agregar contactos"),
+			'description' => t("Permite crear nuevos contactos en el directorio")
+		),
+		'ver datos privados' => array(
+			'title' => t("Ver Datos Privados"),
+			'description' => t("Permite ver datos privados de un contacto")
+		),
+		'editar contacto' => array(
+			'title' => t("Editar contacto"),
+			'description' => t("Permite editar datos privados de un contacto")
+		),
+		'eliminar contacto' => array(
+			'title' => t("Eliminar contacto"),
+			'description' => t("Permite eliminar un contacto")
 		)
 	);
 }
 
-function directorio_agregarContactoForm($form ){
+/**
+ * Callback para contactos/agregar
+ * Muestra la forma para agregar un contacto
+ */
+function directorio_agregarContactoForm($form,$form_state, $cid) {
 	$form = array();
 
 	$form["nombre"] = array(
 		'#type' => 'textfield',
-		'#title' => t("Nombre(s)"),
+		'#title' => t("Nombre"),
 		'#required' => TRUE,
-		'#description' => t("Descriva el nombre o los nombres del contacto")
-
+		'#description' => t("Escriba el nombre o los nombres del contacto")
 	);
 
-	$form["paterno"] = array(
+	$form["apellido_paterno"] = array(
 		'#type' => 'textfield',
-		'#title' => t("Apellido Paterno"),
+		'#title' => t("Apellido paterno"),
 		'#required' => TRUE,
-		'#description' => t("Apellido Paterno")
+		'#description' => t("Escriba el apellido paterno")
 	);
 
-	$form["materno"] = array(
+	$form["apellido_materno"] = array(
 		'#type' => 'textfield',
-		'#title' => t("Apellido Materno"),
-		'#description' => t("Apellido Materno")
+		'#title' => t("Apellido materno"),
+		'#required' => FALSE,
+		'#description' => t("Escriba el apellido materno. Este campo es opcional.")
 	);
 
 	$form["departamento"] = array(
-		'#title' => t("Departamento"),
 		'#type' => 'select',
+		'#title' => t("Departamento"),
 		'#required' => TRUE,
 		'#description' => t("Seleccione el departamento al que pertenece esta persona"),
 		'#options' => getDepartamento()
 	);
 
 	$form["telefono_oficina"] = array(
-		'#title' => t("Telefono de la Oficina"),
 		'#type' => 'textfield',
-		'#description' => t("Escriba el telefono de la oficina")
+		'#title' => t("Teléfono de oficina"),
+		'#required' => TRUE,
+		'#description' => t("Escriba el teléfono de oficina"),
+		'#default_value' => _telefonoDeOficinaDefault()
 	);
 
-	$form["extencion_telefonica"] = array(
-		'#title' => t("Extencion telefonica"),
+	$form["oficina_extension"] = array(
 		'#type' => 'textfield',
+		'#title' => t("Extensión telefónica"),
 		'#required' => TRUE,
-		'#description' => t("Escriba la extencion telefonica")
+		'#description' => t("Escriba la extensión telefónica del contacto")
 	);
 
 	$form["email_trabajo"] = array(
-		'#title' => t("Correo Electronico"),
 		'#type' => 'textfield',
-		'#description' => t("Escriba el correo Electronico de trabajo")
+		'#title' => t("Correo electrónico del trabajo"),
+		'#required' => FALSE,
+		'#description' => t("Escriba el correo electrónico del trabajo del contacto")
 	);
 
 	$form["email_personal"] = array(
-		'#title' => t("Correo Personal"),
 		'#type' => 'textfield',
-		'#description' => t("Escriba el correo Electronico Personal")
+		'#title' => t("Correo electrónico personal"),
+		'#required' => FALSE,
+		'#description' => t("Escriba el correo electrónico personal del contacto")
 	);
 
 	$form["telefono_casa"] = array(
-		'#title' => t("Telefono Casa"),
 		'#type' => 'textfield',
-		'#description' => t("Escriba el Telefono de Casa")
+		'#title' => t("Teléfono de casa"),
+		'#required' => FALSE,
+		'#description' => t("Escriba el teléfono de casa")
 	);
 
 	$form["telefono_celular"] = array(
-		'#title' => t("Telefono Celular"),
 		'#type' => 'textfield',
-		'#description' => t("Escriba el Telefono Celular")
+		'#title' => t("Teléfono celular"),
+		'#required' => FALSE,
+		'#description' => t("Escriba el teléfono celular del contacto")
 	);
+
+	$form["nacimiento"] = array(
+			'#type' => 'date',
+			'#title' => t("Fecha de nacimiento"),
+			'#required' => TRUE,
+			'#description' => t("Fecha de nacimiento")
+		);
 
 	$form["actions"] = array(
 		'#prefix' => '<div class="actions well">',
@@ -192,89 +585,110 @@ function directorio_agregarContactoForm($form ){
 	);
 
 	$form["actions"]["submit"] = array(
-		'#type' => "submit",
+		'#type' => 'submit',
 		'#value' => t("Save")
 	);
 
-	//Botón Cancelar del formulario
-	/*
-	$form["actions"]["cancel"] = array(
-		'#type' => "submit",
-		'#value' => t("Cancel"),
-		'#submit' => array("mifuncion_cancel")
-	);
-	*/
+	if(isset($cid)){
+		$contacto = contactosLoad($cid);
+		$form['_cid'] = array(
+			'#type' => "hidden",
+			'#value' => $cid
+		);
 
+		$form["nombre"]["#default_value"] = $contacto->nombre;
+		$form["apellido_paterno"]["#default_value"] = $contacto->apellido_paterno;
+		$form["apellido_materno"]["#default_value"] = $contacto->apellido_materno;
+		$form["departamento"]["#default_value"] = $contacto->departamento;
+		$form["telefono_oficina"]["#default_value"] = $contacto->telefono_oficina;
+		$form["email_trabajo"]["#default_value"] = $contacto->email_trabajo;
+		$form["email_personal"]["#default_value"] = $contacto->email_personal;
+		$form["telefono_celular"]["#default_value"] = $contacto->telefono_celular;
+		$form["telefono_celular"]["#default_value"] = $contacto->telefono_celular;
+		$form["telefono_casa"]["#default_value"] = $contacto->telefono_casa;
+		$form["oficina_extension"]["#default_value"] = $contacto->oficina_extension;
 
-	return  $form;
+		if(user_access("eliminar contacto")){
+			$form["actions"]["delete"] = array(
+				'#markup' => l(t("Delete"), "contactos/eliminar/". $cid)
+			);
+		}
+
+	}
+	return $form;
 }
-
-/*
-  funcion para el botón Cancelar del formulario
-function mifuncion_cancel(&$form, &$form_state){
-	drupal_set_message("Se oprimió el botón cancel");
-}
-*/
-
 
 /**
- * Metodo para validar los campos antes de llegar al submit
+ * Submit callback para agregar contactos form
  */
-/*
-function directorio_agregarContactoForm_validate(&$form, &$form_state){
-	dsm();
-}
-*/
-/**
- * Submit callback para directorio_agregarContactoFomr
- */
-
-function directorio_agregarContactoForm_submit(&$form, &$form_state){
+function directorio_agregarContactoForm_submit(&$form, &$form_state) {
 	$values = $form_state["values"];
 	dsm($values);
 
 	$persona = array(
 		'nombre' => $values["nombre"],
-		'apellido_paterno' => $values["apellido_paterno"],			
+		'apellido_paterno' => $values["apellido_paterno"],
 		'apellido_materno' => $values["apellido_materno"],
 		'departamento' => $values["departamento"],
 		'telefono_oficina' => $values["telefono_oficina"],
-		'extencion_telefonica' => $values["extencion_telefonica"],
+		'oficina_extension' => $values["oficina_extension"],
 		'email_trabajo' => $values["email_trabajo"],
 		'email_personal' => $values["email_personal"],
 		'telefono_celular' => $values["telefono_celular"],
-		'telefono_casa' => $values["telefono_casa"],
+		'telefono_casa' => $values["telefono_casa"]
 	);
 
-	$cid = db_insert("contactos")
-	->fields($persona)
-	->execute();
+	$fecha = $values["nacimiento"];
+	if(isset($fecha) && is_array($fecha)){
+		$persona["fecha_nacimiento"] = strtotime($fecha["month"] . "/" . $fecha["day"] . "/" . $fecha["year"]);
+	}
 
-	if($cid){
-		drupal_set_message("se inserto con exito el contacto con id: !id",array("!id" =>$cid));
+	if (!empty($values["_cid"])) {			
+			//estoy editando
+			$cid = $values["_cid"];
+
+			$update = db_merge("contactos")
+				->key(array("cid" => $cid))
+				->fields($persona)
+				->execute();
+		}
+		else
+		{	
+
+		$cid = db_insert("contactos")
+		->fields($persona)
+		->execute();
+
+	if($cid) {
+		drupal_set_message(t("Se insertó con éxito el contacto con id !id", array("!id" => $cid)));
 	}
-	else{
-		drupal_set_message(t("hubo error"));
+	else {
+		drupal_set_message(t("Hubo un error"), "error");
 	}
+	 }
 }
 
 /**
- * Numero de telefono por default de la organizacion
- * @return string telefono de la oficina por default
+ * Listado de departamentos en la compañía
+ *
+ * @return array listado de departamentos
  */
-function _telefonoDeOficinaDefault(){
+function getDepartamento() {
+	return array(
+		'administracion' => t("Administración"),
+		'recursos_humanos' => t("Recursos Humanos"),
+		'sistemas' => t("Sistemas"),
+		'ventas' => t("Ventas")
+	);
+}
+
+
+/**
+ * Número de teléfono por default de la organización
+ * @return  string teléfono de oficina por default
+ */
+function _telefonoDeOficinaDefault() {
 	return "2020-7350";
 }
 
-/**
- * Listado de departamentos en la compañia
- * @return array listado de departamentos
- */
-function getDepartamento(){
-	return array(
-		'administracion' => t("Administracion"),
-		'sistemas' => t("Sistemas"),
-		'ventas' => t("Ventas"),
-		'recursos_humanos' => t("Recursos Humanos")
-	);
-}
+
