@@ -1,0 +1,138 @@
+<?php
+
+
+/**
+ * Implements hook_install()
+ */
+function directorio_install() {
+
+}
+
+
+/**
+ * Implements hook_uninstall()
+ */
+function directorio_uninstall() {
+
+}
+
+/**
+ * Implements hook_schema()
+ */
+function directorio_schema() {
+	$schema = array();
+
+	$schema["contactos"] = array(
+		'description' => 'La tabla de contactos',
+		'fields' => array(
+			'cid' => array(
+				'description' => 'El ID único del contacto',
+				'type' => 'serial',
+				'unsigned' => TRUE,
+				'not null' => TRUE
+			),
+			'nombre' => array(
+				'description' => 'Nombre o nombres del contacto',
+				'type' => 'varchar',
+				'length' => '255',
+				'not null' => TRUE,
+				'default' => ''
+			),
+			'apellido_paterno' => array(
+				'description' => 'Apellido paterno del contacto',
+				'type' => 'varchar',
+				'length' => '255',
+				'not null' => TRUE,
+				'default' => ''
+			),
+			'apellido_materno' => array(
+				'description' => 'Apellido materno del contacto',
+				'type' => 'varchar',
+				'length' => '255',
+				'not null' => FALSE,
+				'default' => '',
+			),
+			'departamento' => array(
+				'description' => 'Departamento de la persona',
+				'type' => 'varchar',
+				'length' => '255',
+				'not null' => TRUE,
+				'default' => '',
+			),
+			'telefono_oficina' => array(
+				'description' => 'Teléfono de oficina',
+				'type' => 'varchar',
+				'length' => '24',
+				'not null' => TRUE,
+				'default' => "",
+			),
+			'oficina_extension' => array(
+				'description' => 'Extensión telefonica',
+				'type' => 'varchar',
+				'length' => '24',
+				'not null' => FALSE,
+				'default' => NULL
+			),
+			'email_trabajo' => array(
+				'description' => 'Email del trabajo',
+				'type' => 'varchar',
+				'length' => '255',
+				'not null' => FALSE,
+				'default' => NULL,
+			),
+			'email_personal' => array(
+				'description' => 'Email personal',
+				'type' => 'varchar',
+				'length' => '255',
+				'not null' => FALSE,
+				'default' => NULL
+			),
+			'telefono_celular' => array(
+				'description' => 'Teléfono celular',
+				'type' => 'varchar',
+				'length' => '24',
+				'not null' => FALSE,
+				'default' => NULL,
+			),
+			'telefono_casa' => array(
+				'description' => 'Telefono casa',
+				'type' => 'varchar',
+				'length' => '24',
+				'not null' => FALSE,
+				'default' => NULL
+			),
+			'fecha_de_nacimiento' => array(
+				'description' => 'Fecha de nacimiento del usuario',
+				'type' => 'int',
+				'not null' => FALSE,
+				'default' => NULL,
+				'unsigned' => FALSE
+			)
+		),	
+		'indexes' => array(
+			'nombre' => array("nombre"),
+			'apellido_paterno' => array("apellido_paterno"),
+			'apellido_materno' => array("apellido_materno"),
+			'oficina_extension' => array("oficina_extension"),
+			'email_trabajo' => array("email_trabajo")
+		),
+		'primary key' => array("cid")
+	);
+
+	return $schema;
+}
+
+/***
+Agrega la columna de fecha de nacimiento a la tabla de contactos
+*/
+function directorio_update_7100(){
+	$column = array(
+		'description' => 'Fecha de nacimiento del usuario',
+		'type' => 'int',
+		'not null' => FALSE,
+		'default' => NULL,
+		'unsigned' => FALSE
+	);
+
+	db_add_field("contactos", "fecha_de_nacimiento", $column);
+}

@@ -1,0 +1,13 @@
+name = Directorio
+core = 7.x
+
+descripcion = Permite la creación de un directorio de contactos para un sitio
+package = Other
+version = 7.x.1.0-alpha1
+dependencies[] = block
+files[] = directorio.module
+files[] = directorio.admin.inc
+
+stylesheets[all][] = style.css
+
+configure = admin/settings/directorio
