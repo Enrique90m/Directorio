@@ -1,5 +1,5 @@
 <?php
-
+//a
 /**
  * Implements hook_menu()
  */
@@ -88,6 +88,51 @@ function directorio_menu() {
 }
 
 
+
+/***
+callback para obtener el cumpleanos de los proximos 7 dias
+*/
+function _getBirthdays(){
+	$query = db_query("SELECT * FROM {contactos} WHERE DATE_FORMAT ( FROM_UNIXTIME(fecha_nacimiento), '%m-%d') > DATE_FORMAT(NOW(), '%m-%d'
+		) AND DATE_FORMAT(FROM_UNIXTIME(fecha_nacimiento), '%m-%d) < DATE_FORMAT(ADDDATE(NOW), INTERVAL 7 DAY, '%m-%d' )");
+
+	$results = array();
+	foreach ($query as $result) {
+		$results[] = $result;
+	}
+}
+
+/***
+implementa el hook_info()
+*/
+function directorio_block_info() {
+  $blocks["birthdays"] = array(
+    'info' => t("Next birthdays"),
+    'cache' => DRUPAL_NO_CACHE
+  );
+
+  return $blocks;
+}
+
+function directorio_birthdays(){
+	if(user_access("ver cumpleanos")){
+		$birthdays = _getBirthdays();
+
+		return theme("birthdays", array("birthdays" => $birthdays));
+	}
+}
+
+function theme_birthdays($variables) {
+  $birthdays = $variables["birthdays"];
+  foreach($birthdays as $person) {
+    $items[] = '<span class="birthday-name">' . $person->fullname . "</span><br />" . '<span class="birthday-date">' . format_date($person->fecha_nacimiento, "custom", "l j \d\e F") . '</span>';
+  }
+
+  return theme("item_list", array("items" => $items, "attributes" => array("class" => array("birthdays"))));
+}
+
+=======
+>>>>>>> 0b9fb350f3f825bade93ea4b14f4ce28a793d444
 function directorio_eliminarContactoForm($form, &$form_state,$cid){
 	$form = array();
 
